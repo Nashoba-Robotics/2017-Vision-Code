@@ -7,7 +7,7 @@
 #include <math.h>
 #include <errno.h>
 
-#define USE_NETWORK
+//#define USE_NETWORK
 #ifdef USE_NETWORK
 #include "tcp_client.h"
 #define PORT 5800
@@ -52,18 +52,21 @@
 #define BLUE_HIGH 100
 #endif
 
-
-
 using namespace cv;
 using namespace std;
 
-#ifdef USE_RASPICAM
-raspicam::RaspiCam_Cv capture;
-#else
-VideoCapture capture;
-#endif
+//Contours
+const int minArea = 750;
+const int thresh = 200; //For edge detection 
+const Scalar color = Scalar(255,255,255);
 
-Mat getBWImage() {
+#ifdef USE_NETWORK
+tcp_client c;
+#endif 
+
+VideoCapture capture;
+
+Mat getBWImage(Mat img) {
   //Dilation
   const int dilationSize = 2;
   const Mat dilateElement = getStructuringElement(MORPH_RECT, Size(2*dilationSize + 1, 2*dilationSize + 1), Point(dilationSize, dilationSize));
@@ -84,20 +87,11 @@ Mat getBWImage() {
 #endif
 
 
-  Mat img;
   Mat imgFixed;
   Mat blurredImg;
   Mat imgThresh;
   Mat dilatedImg;
   Mat hls;
-  
-#ifdef USE_RASPICAM
-  capture.grab();
-  capture.retrieve(img);
-#else
-  capture >> img;
-#endif
-
 #ifdef ShowWindows
   imshow( "image", img);
 #endif
@@ -129,42 +123,19 @@ Mat getBWImage() {
  return dilatedImg;
 }
 
-int main(int argc, char* argv[])
-{
-  if(argc != 2) {
-    cout << "Incorrect number of arguments. Needs a USB port number" << endl;
-  }
-  setNumThreads(0);
+typedef struct DataStruct {
+    unsigned int angle;
+    unsigned int distance;
+    unsigned int timestamp;
+} Data;
 
-  cout << "Using OpenCV Version " << CV_MAJOR_VERSION << "." << CV_MINOR_VERSION << endl;
-
-  cout << "Opening USB Camera" << endl;
-  capture = VideoCapture(atoi(argv[1]));  
-  if(!capture.isOpened()) {
-    cout << "Video Capture not opened" << endl;
-    return -1;
-  }
-
-#ifdef USE_NETWORK 
-  tcp_client c;
-  string host = ROBOT_IP; 
-  do {
-    cout << "Trying to connect..." << endl;
-  } while( !c.conn(host, PORT));
-#endif
-
-  //Contours
-  const int minArea = 750;
-  const int thresh = 200; //For edge detection 
-  Mat canny_output;
-  vector<vector<Point> > contours;
-  vector<Vec4i> hierarchy;
-  const Scalar color = Scalar(255,255,255);
-
-  while(1)
-  {
+Data processImage(Mat rawimg) {
+    Mat canny_output;
+    vector<vector<Point> > contours;
+    vector<Vec4i> hierarchy;
+ 
     clock_t t = clock();
-    Mat img = getBWImage();
+    Mat img = getBWImage(rawimg);
     cout << ((float) clock() - t)/CLOCKS_PER_SEC << "s" << endl;
     //Contours processing
     Canny(img, canny_output, thresh, thresh*2, 3 );
@@ -264,35 +235,62 @@ int main(int argc, char* argv[])
         //int angleToTurn = (goodRect[i].y + goodRect[i].height/2) - HEIGHT/2;
 
        	   unsigned int distance = goodRectReal[rectToUse].x;
-           unsigned int angleToTurn = goodRectReal[rectToUse].y + (goodRectReal[rectToUse].height / 2) - (HEIGHT / 2);
-
+           unsigned int angle = goodRectReal[rectToUse].y + (goodRectReal[rectToUse].height / 2) - (HEIGHT / 2);
+           unsigned int timestamp = (1000*clock() - t)/CLOCKS_PER_SEC;
    //     cout << "Distance: \t" << distance << endl;
    //     cout << "Angle: \t\t" << angleToTurn << endl;
-#ifdef USE_NETWORK
-        c.send_actual_data('d', distance);
-        c.send_actual_data('a', angleToTurn);
-	c.send_actual_data('g', goodRectReal.size());
-	if(goodRectReal.size() == 2) {
-	    c.send_actual_data('b', goodRectReal[rectToUse1].height);
-	    c.send_actual_data('c', goodRectReal[rectToUse1].width);
-	    c.send_actual_data('e', goodRectReal[rectToUse1].x);
-	    c.send_actual_data('f', goodRectReal[rectToUse1].y);
-	    c.send_actual_data('h', goodRectReal[rectToUse2].height);
-	    c.send_actual_data('i', goodRectReal[rectToUse2].width);
-	    c.send_actual_data('j', goodRectReal[rectToUse2].x);
-	    c.send_actual_data('k', goodRectReal[rectToUse2].y);
-	    c.send_actual_data('l', goodRectReal[rectToUse].x + goodRectReal[rectToUse].width);
-	}
-	c.send_actual_data('t', 1000*(clock() - t)/CLOCKS_PER_SEC);
-#endif 
+        
 
-
-
-      }
-    }
     cout << ((float) clock() - t)/CLOCKS_PER_SEC << "s" << endl;
     cout << CLOCKS_PER_SEC/((float) clock() - t) << "fps" << endl;
-    //waitKey(1);
+
+    return (Data) { angle : angle, distance : distance, timestamp : timestamp };
+      }
+    }
+ 
+    cout << ((float) clock() - t)/CLOCKS_PER_SEC << "s" << endl;
+    cout << CLOCKS_PER_SEC/((float) clock() - t) << "fps" << endl;
+
+   return (Data) {angle: 0, distance: 0, timestamp: 0};
+} 
+
+int main(int argc, char* argv[])
+{
+  if(argc != 2) {
+    cout << "Incorrect number of arguments. Needs a USB port number" << endl;
+  }
+  setNumThreads(0);
+
+  cout << "Using OpenCV Version " << CV_MAJOR_VERSION << "." << CV_MINOR_VERSION << endl;
+
+  cout << "Opening USB Camera" << endl;
+  capture = VideoCapture(atoi(argv[1]));  
+  if(!capture.isOpened()) {
+    cout << "Video Capture not opened" << endl;
+    return -1;
+  }
+
+#ifdef USE_NETWORK 
+  string host = ROBOT_IP; 
+  do {
+    cout << "Trying to connect..." << endl;
+  } while( !c.conn(host, PORT));
+#endif
+while(1)
+  {
+    Mat rawimg; 
+    capture >> rawimg;
+    Data d = processImage(rawimg);
+
+    
+#ifdef USE_NETWORK
+    c.send_actual_data('d', d.distance);
+    c.send_actual_data('a', d.angle);
+    c.send_actual_data('t', d.timestamp);
+#endif 
+#ifdef ShowWindows 
+    waitKey(1);
+#endif
   }
   capture.release();
   return 0;
