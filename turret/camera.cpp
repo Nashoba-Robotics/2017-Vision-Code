@@ -127,7 +127,7 @@ typedef struct DataStruct {
     unsigned int timestamp;
 } Data;
 
-Data processImage(Mat rawimg) {
+Data processImage(Mat rawimg, int threadNum) {
     Mat canny_output;
     vector<vector<Point> > contours;
     vector<Vec4i> hierarchy;
@@ -239,15 +239,15 @@ Data processImage(Mat rawimg) {
    //     cout << "Angle: \t\t" << angleToTurn << endl;
         
 
-    cout << ((float) clock() - t)/CLOCKS_PER_SEC << "s" << endl;
-    cout << CLOCKS_PER_SEC/((float) clock() - t) << "fps" << endl;
+    cout << "num: " << threadNum << " " << ((float) clock() - t)/CLOCKS_PER_SEC << "s" << endl;
+    cout << "num: " << threadNum << " " << CLOCKS_PER_SEC/((float) clock() - t) << "fps" << endl;
 
     return (Data) { angle : angle, distance : distance, timestamp : timestamp };
       }
     }
  
-    cout << ((float) clock() - t)/CLOCKS_PER_SEC << "s" << endl;
-    cout << CLOCKS_PER_SEC/((float) clock() - t) << "fps" << endl;
+    cout << "num: " << threadNum << " " << ((float) clock() - t)/CLOCKS_PER_SEC << "s" << endl;
+    cout << "num: " << threadNum << " " << CLOCKS_PER_SEC/((float) clock() - t) << "fps" << endl;
 
    return (Data) {angle: 0, distance: 0, timestamp: 0};
 } 
@@ -273,8 +273,7 @@ void* threadOneFunc(void *unused) {
     Mat rawimg = crossThreadImageOne;
     pthread_mutex_unlock(&crossThreadImageMutexOne);
 
-    Data d = processImage(rawimg);
-
+    Data d = processImage(rawimg, 1);
 
 #ifdef USE_NETWORK
     c.send_actual_data('d', d.distance);
@@ -308,7 +307,7 @@ void* threadTwoFunc(void *unused) {
     Mat rawimg = crossThreadImageTwo;
     pthread_mutex_unlock(&crossThreadImageMutexTwo);
 
-    Data d = processImage(rawimg);
+    Data d = processImage(rawimg, 2);
 
 
 #ifdef USE_NETWORK
@@ -327,6 +326,8 @@ int main(int argc, char* argv[])
   if(argc != 2) {
     cout << "Incorrect number of arguments. Needs a USB port number" << endl;
   }
+
+  setNumThreads(2);
 
   pthread_t threadOne;
   pthread_t threadTwo;
