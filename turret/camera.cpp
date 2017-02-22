@@ -7,6 +7,7 @@
 #include <math.h>
 #include <errno.h>
 #include <pthread.h>
+#include <unistd.h>
 
 //#define USE_NETWORK
 #ifdef USE_NETWORK
@@ -382,7 +383,9 @@ while(1)
 
     pthread_mutex_unlock(&crossThreadImageMutexTwo);
 #ifdef ShowWindows 
-    waitKey(1);
+    waitKey(10);
+#else
+    usleep(50000);
 #endif
   }
   capture.release();
