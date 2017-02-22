@@ -6,6 +6,7 @@
 #include "opencv2/highgui/highgui_c.h"
 #include <math.h>
 #include <errno.h>
+#include <pthread.h>
 
 //#define USE_NETWORK
 #ifdef USE_NETWORK
@@ -59,10 +60,6 @@ using namespace std;
 const int minArea = 750;
 const int thresh = 200; //For edge detection 
 const Scalar color = Scalar(255,255,255);
-
-#ifdef USE_NETWORK
-tcp_client c;
-#endif 
 
 VideoCapture capture;
 
@@ -254,14 +251,88 @@ Data processImage(Mat rawimg) {
    return (Data) {angle: 0, distance: 0, timestamp: 0};
 } 
 
+Mat crossThreadImageOne;
+
+pthread_mutex_t crossThreadImageMutexOne;
+
+// We have to have the unused parameter for threading to work
+void* threadOneFunc(void *unused) {
+ 
+#ifdef USE_NETWORK 
+  tcp_client c;
+  string host = ROBOT_IP; 
+  do {
+    cout << "Trying to connect..." << endl;
+  } while( !c.conn(host, PORT));
+#endif
+
+  while(1) {
+
+    pthread_mutex_lock(&crossThreadImageMutexOne);
+    Mat rawimg = crossThreadImageOne;
+    pthread_mutex_unlock(&crossThreadImageMutexOne);
+
+    Data d = processImage(rawimg);
+
+
+#ifdef USE_NETWORK
+    c.send_actual_data('d', d.distance);
+    c.send_actual_data('a', d.angle);
+    c.send_actual_data('t', d.timestamp);
+#endif 
+
+
+   } 
+}
+
+
+Mat crossThreadImageTwo;
+
+pthread_mutex_t crossThreadImageMutexTwo;
+
+// We have to have the unused parameter for threading to work
+void* threadTwoFunc(void *unused) {
+ 
+#ifdef USE_NETWORK 
+  tcp_client c;
+  string host = ROBOT_IP; 
+  do {
+    cout << "Trying to connect..." << endl;
+  } while( !c.conn(host, PORT + 2));
+#endif
+
+  while(1) {
+
+    pthread_mutex_lock(&crossThreadImageMutexTwo);
+    Mat rawimg = crossThreadImageTwo;
+    pthread_mutex_unlock(&crossThreadImageMutexTwo);
+
+    Data d = processImage(rawimg);
+
+
+#ifdef USE_NETWORK
+    c.send_actual_data('d', d.distance);
+    c.send_actual_data('a', d.angle);
+    c.send_actual_data('t', d.timestamp);
+#endif 
+
+
+   } 
+}
+
+
 int main(int argc, char* argv[])
 {
   if(argc != 2) {
     cout << "Incorrect number of arguments. Needs a USB port number" << endl;
   }
-  setNumThreads(0);
+
+  pthread_t threadOne;
+  pthread_t threadTwo;
 
   cout << "Using OpenCV Version " << CV_MAJOR_VERSION << "." << CV_MINOR_VERSION << endl;
+
+
 
   cout << "Opening USB Camera" << endl;
   capture = VideoCapture(atoi(argv[1]));  
@@ -269,25 +340,47 @@ int main(int argc, char* argv[])
     cout << "Video Capture not opened" << endl;
     return -1;
   }
+  pthread_mutex_init(&crossThreadImageMutexOne, NULL);
 
-#ifdef USE_NETWORK 
-  string host = ROBOT_IP; 
-  do {
-    cout << "Trying to connect..." << endl;
-  } while( !c.conn(host, PORT));
-#endif
+  pthread_mutex_lock(&crossThreadImageMutexOne);
+
+  pthread_create(&threadOne, NULL, threadOneFunc, NULL);
+
+  pthread_mutex_init(&crossThreadImageMutexTwo, NULL);
+
+  pthread_mutex_lock(&crossThreadImageMutexTwo);
+
+  pthread_create(&threadTwo, NULL, threadTwoFunc, NULL);
+
+  int firstTimeOne = 1;
+  int firstTimeTwo = 1;
+
 while(1)
   {
     Mat rawimg; 
-    capture >> rawimg;
-    Data d = processImage(rawimg);
+    capture >> rawimg;    
 
-    
-#ifdef USE_NETWORK
-    c.send_actual_data('d', d.distance);
-    c.send_actual_data('a', d.angle);
-    c.send_actual_data('t', d.timestamp);
-#endif 
+    if(!firstTimeOne) {
+        pthread_mutex_lock(&crossThreadImageMutexOne);
+    } else {
+        firstTimeOne = 0;
+    }
+  
+   crossThreadImageOne = rawimg;
+
+    pthread_mutex_unlock(&crossThreadImageMutexOne);
+
+    capture >> rawimg;    
+
+    if(!firstTimeTwo) {
+        pthread_mutex_lock(&crossThreadImageMutexTwo);
+    } else {
+        firstTimeTwo = 0;
+    }
+  
+   crossThreadImageTwo = rawimg;
+
+    pthread_mutex_unlock(&crossThreadImageMutexTwo);
 #ifdef ShowWindows 
     waitKey(1);
 #endif
