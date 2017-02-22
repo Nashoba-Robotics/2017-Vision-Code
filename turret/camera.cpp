@@ -135,8 +135,8 @@ Data processImage(Mat rawimg) {
     Mat img = getBWImage(rawimg);
     cout << ((float) clock() - t)/CLOCKS_PER_SEC << "s" << endl;
     //Contours processing
-    Canny(img, canny_output, thresh, thresh*2, 3 );
-    findContours( canny_output, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0,0) );
+    //Canny(img, canny_output, thresh, thresh*2, 3 );
+    findContours( img /*canny_output*/, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0,0) );
     //Limit contours (area, perimeter, etc.)
     cout << ((float) clock() - t)/CLOCKS_PER_SEC << "s" << endl;
     vector<vector<Point> > goodContours(0);
@@ -152,6 +152,7 @@ Data processImage(Mat rawimg) {
         goodRect.push_back(boundRect[i]);
       }
     }
+#ifdef ShowWindows
     //Draw contours
     Mat drawing = Mat::zeros(canny_output.size(), CV_8UC3 );
     for(unsigned int i = 0; i < goodContours.size(); i++)
@@ -159,7 +160,6 @@ Data processImage(Mat rawimg) {
       rectangle(drawing, goodRect[i].tl(), goodRect[i].br(), color, 2,8,0);
       drawContours(drawing, goodContours, i, color, 2,8,hierarchy, 0, Point() );
     }
-#ifdef ShowWindows
     imshow("Contours", drawing);
 #endif
     //Determine which contour to use.
