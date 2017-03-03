@@ -1,4 +1,7 @@
 #!/bin/sh
+
+route add -net 10.17.68.0 netmask 255.255.255.0 dev eth0
+
 v4l2-ctl -d`/home/pi/2017-Camera-Code/whatcamami.pl T` --set-fmt-video=width=640,height=480,pixelformat=YUYV
 v4l2-ctl -d`/home/pi/2017-Camera-Code/whatcamami.pl T` -c brightness=-64
 v4l2-ctl -d`/home/pi/2017-Camera-Code/whatcamami.pl T` -c contrast=64
