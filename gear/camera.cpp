@@ -45,11 +45,11 @@
 #define SAT_HIGH 255
 #else
 #define RED_LOW 0
-#define RED_HIGH 150
-#define GREEN_LOW 100
+#define RED_HIGH 20
+#define GREEN_LOW 200
 #define GREEN_HIGH 255
 #define BLUE_LOW 0
-#define BLUE_HIGH 150
+#define BLUE_HIGH 20
 #endif
 
 
@@ -154,7 +154,7 @@ int main(int argc, char* argv[])
 #endif
 
   //Contours
-  const int minArea = 375;
+  const int minArea = 200;
   const int thresh = 200; //For edge detection
   Mat canny_output;
   vector<vector<Point> > contours;
@@ -166,8 +166,8 @@ int main(int argc, char* argv[])
     clock_t t = clock();
     Mat img = getBWImage();
     //Contours processing
-    //Canny(img, canny_output, thresh, thresh*2, 3 );
-    findContours( img/*canny_output*/, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0,0) );
+    Canny(img, canny_output, thresh, thresh*2, 3 );
+    findContours( canny_output, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0,0) );
     //Limit contours (area, perimeter, etc.)
     vector<vector<Point> > goodContours(0);
     vector<vector<Point> > contours_poly(contours.size());
@@ -211,13 +211,14 @@ int main(int argc, char* argv[])
     unsigned int corRectX = 0;
     unsigned int corRectWidth = 0;
     unsigned int corRectHeight = 0;
+    unsigned int corRectY = 0;
     bool turnPositive = 0;
 
 
     if(goodRectReal.size() == 3) {
 
 	unsigned int maxHeight = 0;
-	unsigned int maxHeightIndex = 100;//Arbitrary value outside the possible range
+	unsigned int maxHeightIndex = 100; //Arbitrary value outside the possible range
 
 	for(unsigned int i = 0; i < goodRectReal.size(); i++) {
 	    if((unsigned int) (goodRectReal[i].height) > maxHeight) {
@@ -251,7 +252,7 @@ int main(int argc, char* argv[])
 	unsigned int newRectHeight = 0;
 	unsigned int newRectWidth = 0;
 
-	if(goodRectReal[topRectIndex].x < goodRectReal[bottomRectIndex].y) {
+	if(goodRectReal[topRectIndex].x < goodRectReal[bottomRectIndex].x) {
 	    newRectX = (unsigned int)(goodRectReal[topRectIndex].x);
 	    newRectWidth = (unsigned int)(goodRectReal[bottomRectIndex].x + goodRectReal[bottomRectIndex].width - goodRectReal[topRectIndex].x);
 	} else {
@@ -265,13 +266,16 @@ int main(int argc, char* argv[])
 	// WARNING: COOL MATH AHEAD	corRectHeight = (goodRectReal[maxHeightIndex].width * ((goodRectReal[maxHeightIndex].y - newRectY) / (goodRectReal[maxHeightIndex].x - newRectX)) + (newRectWidth * tan(90 - atan((goodRectReal[maxHeightIndex].y - goodRectReal[maxHeightIndex].height - newRectY - newRectHeight) / (goodRectReal[maxHeightIndex].x - goodRectReal[maxHeightIndex].width - newRectX - newRectHeight)) + newRectHeight + goodRectReal[maxHeightIndex].height) / 2));
 	corRectWidth = (newRectWidth + goodRectReal[maxHeightIndex].width) / 2;
 
-	if(newRectX < (unsigned int)(goodRectReal[maxHeightIndex].y)) {
+	if(newRectX < (unsigned int)(goodRectReal[maxHeightIndex].x)) {
 	    corRectX = newRectX;
 	    corRectWidth = goodRectReal[maxHeightIndex].x + goodRectReal[maxHeightIndex].width - newRectX;
 	} else {
 	    corRectX = (unsigned int)(goodRectReal[maxHeightIndex].x);
 	    corRectWidth = newRectX + newRectWidth - goodRectReal[maxHeightIndex].x;
 	}
+
+	corRectY = (unsigned int)(newRectY + goodRectReal[maxHeightIndex].y) / 2;
+
 
 	if (newRectHeight * newRectWidth > (unsigned int)(goodRectReal[maxHeightIndex].height * goodRectReal[maxHeightIndex].width)) {
 	    if (newRectX > (unsigned int)(goodRectReal[maxHeightIndex].x)) {
@@ -334,6 +338,8 @@ int main(int argc, char* argv[])
 	}
 	corRectHeight = tempBottom - tempTop;
 
+	corRectY = (unsigned int)(goodRectReal[0].y + goodRectReal[1].y) / 2;
+
 	if (goodRectReal[0].height * goodRectReal[0].width > goodRectReal[1].height * goodRectReal[1].width) {
             if ((unsigned int)goodRectReal[0].x > (unsigned int)goodRectReal[1].x) {
                 turnPositive = 1;
@@ -356,7 +362,7 @@ int main(int argc, char* argv[])
     }
 */
 
-    int distance = corRectHeight;
+    int distance = HEIGHT - corRectY;
     int angleToTurn = corRectX + (corRectWidth / 2) - WIDTH/2;
     double targetAngle;
     if (corRectHeight != 0) {
@@ -373,7 +379,7 @@ int main(int argc, char* argv[])
     cout << "goodRect Size: \t" << goodRectReal.size() << endl;
     cout << "Target Angle: \t" << targetAngle << endl;
 
-    if(goodRectReal.size() > 0) {
+    if(goodRectReal.size() > 1) {
         ////TODO: These are placeholder variables for testing.
         ////      We need to find the actual distance and angle here.
         //      These are in units of 16ths of an inch and hundreths of degrees

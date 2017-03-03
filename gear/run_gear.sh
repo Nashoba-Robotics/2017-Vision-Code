@@ -4,7 +4,7 @@ v4l2-ctl -d`/home/pi/2017-Camera-Code/whatcamami.pl G` --set-fmt-video=width=640
 v4l2-ctl -d`/home/pi/2017-Camera-Code/whatcamami.pl G` -c brightness=-64
 v4l2-ctl -d`/home/pi/2017-Camera-Code/whatcamami.pl G` -c contrast=64
 v4l2-ctl -d`/home/pi/2017-Camera-Code/whatcamami.pl G` -c saturation=128
-v4l2-ctl -d`/home/pi/2017-Camera-Code/whatcamami.pl G` -c hue=-3
+v4l2-ctl -d`/home/pi/2017-Camera-Code/whatcamami.pl G` -c hue=0
 v4l2-ctl -d`/home/pi/2017-Camera-Code/whatcamami.pl G` -c white_balance_temperature_auto=0
 v4l2-ctl -d`/home/pi/2017-Camera-Code/whatcamami.pl G` -c gamma=72
 v4l2-ctl -d`/home/pi/2017-Camera-Code/whatcamami.pl G` -c gain=0
@@ -13,7 +13,7 @@ v4l2-ctl -d`/home/pi/2017-Camera-Code/whatcamami.pl G` -c white_balance_temperat
 v4l2-ctl -d`/home/pi/2017-Camera-Code/whatcamami.pl G` -c sharpness=3
 v4l2-ctl -d`/home/pi/2017-Camera-Code/whatcamami.pl G` -c backlight_compensation=1
 v4l2-ctl -d`/home/pi/2017-Camera-Code/whatcamami.pl G` -c exposure_auto=1
-v4l2-ctl -d`/home/pi/2017-Camera-Code/whatcamami.pl G` -c exposure_absolute=19
+v4l2-ctl -d`/home/pi/2017-Camera-Code/whatcamami.pl G` -c exposure_absolute=20
 v4l2-ctl -d`/home/pi/2017-Camera-Code/whatcamami.pl G` -c exposure_auto_priority=1
 
 sleep 50
