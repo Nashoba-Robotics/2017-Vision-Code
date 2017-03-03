@@ -8,7 +8,7 @@
 #include <math.h>
 #include <errno.h>
 
-//#define USE_NETWORK
+#define USE_NETWORK
 #ifdef USE_NETWORK
 #include "tcp_client.h"
 #define PORT 5802
@@ -46,11 +46,11 @@
 #define SAT_HIGH 255
 #else
 #define RED_LOW 0
-#define RED_HIGH 125
-#define GREEN_LOW 65
+#define RED_HIGH 150
+#define GREEN_LOW 200
 #define GREEN_HIGH 255
 #define BLUE_LOW 0
-#define BLUE_HIGH 125
+#define BLUE_HIGH 150
 #endif
 
 
@@ -80,8 +80,8 @@ Mat getBWImage() {
   const Scalar high = Scalar(HUE_HIGH, LUM_HIGH, SAT_HIGH);
 #else
   //RGB Thresholding
-  const Scalar low = Scalar(RED_LOW, GREEN_LOW, BLUE_LOW);
-  const Scalar high = Scalar(RED_HIGH, GREEN_HIGH, BLUE_HIGH);
+  const Scalar low = Scalar(BLUE_LOW, GREEN_LOW, RED_LOW);
+  const Scalar high = Scalar(BLUE_HIGH, GREEN_HIGH, RED_HIGH);
 #endif
 
 
@@ -100,7 +100,7 @@ Mat getBWImage() {
 #endif
 
 #ifdef ShowWindows
-  imshow( "image", img);
+  imwrite( "image.jpg", img);
 #endif
 
   //Blur
@@ -108,6 +108,10 @@ Mat getBWImage() {
   GaussianBlur(img,blurredImg,Size(kernelSize,kernelSize), 1);
 #else
   blurredImg = img;
+#endif
+
+#ifdef ShowWindows
+  imwrite("blurred.jpg", blurredImg);
 #endif
 
 #ifdef USE_HLS
@@ -125,7 +129,7 @@ Mat getBWImage() {
   dilatedImg = imgThresh;
 #endif
 #ifdef ShowWindows
-  imshow("dilate", dilatedImg);
+  imwrite("dilate.jpg", dilatedImg);
 #endif 
  return dilatedImg;
 }
@@ -155,7 +159,7 @@ int main(int argc, char* argv[])
 #endif
 
   //Contours
-  const int minArea = 750;
+  const int minArea = 200;
   const int thresh = 200; //For edge detection 
   Mat canny_output;
   vector<vector<Point> > contours;
@@ -193,25 +197,43 @@ int main(int argc, char* argv[])
       rectangle(drawing, goodRect[i].tl(), goodRect[i].br(), color, 2,8,0);
       drawContours(drawing, goodContours, i, color, 2,8,hierarchy, 0, Point() );
     }
-    imshow("Contours", drawing);
+    imwrite("Contours.jpg", drawing);
 #endif
     //Determine which contour to use.
     //We'll assume there's only one contour for now, but this needs to be fixed.
     //cout << "Good Rect Size: " << goodRect.size() << endl;
     vector<Rect> goodRectReal(0);
-
+    cout << "Good rect size HERE " << goodRect.size() << endl;
     for(unsigned int i = 0; i < goodRect.size(); i++) {
-        for(unsigned int j = i + 1; j < goodRect.size(); j++) {
+        //cout << "Good rect " << i << " x: " << goodRect[i].x << " y: " << goodRect[i].y << endl; 
+        /*for(unsigned int j = i + 1; j < goodRect.size(); j++) {
             if((goodRect[i].x - 2) < goodRect[j].x && goodRect[j].x < (goodRect[j].x + 2) && (goodRect[i].y - 2) < goodRect[j].y && goodRect[j].y < (goodRect[i].y + 2)) {
                 goodRectReal.push_back(goodRect[i]);
+                break; 
             }
-        }
+        }*/
+        //There isn't a duplicate of this remaining.in the rest of the array
+            bool thisIsADuplicate = false;
+            for(unsigned int k = 0; k < goodRectReal.size(); k++) {
+                //cout << "x condition: " << ((goodRect[i].x - 4) < goodRectReal[k].x && goodRectReal[k].x < (goodRectReal[k].x + 4)) << endl;
+                //cout << "y condition: " << ((goodRect[i].y - 4) < goodRectReal[k].y && goodRectReal[k].y < (goodRectReal[k].y + 4)) << endl;
+                if((goodRect[i].x - 4) < goodRectReal[k].x && goodRectReal[k].x < (goodRect[i].x + 4) && (goodRect[i].y - 4) < goodRectReal[k].y && goodRectReal[k].y < (goodRect[i].y + 4)) {
+                    thisIsADuplicate = true;
+                    //cout << "dup of rect " << k << " x: " << goodRectReal[k].x << " y: " << goodRectReal[k].y << endl; 
+                    break; 
+                }
+            }
+            if(!thisIsADuplicate) {
+                //cout << "This is not a duplicate" << endl;
+                goodRectReal.push_back(goodRect[i]);
+            }
     }
+    cout << "Good rect real size HERE " << goodRectReal.size() << endl;
 
     /*if(goodRect.size() == 3) {
         for (unsigned int i = 0; i < goodRect.size(); i++) {
        	    for(unsigned int j = 0; j < goodRectReal.size(); j++) {
-                if(!((goodRect[i].x - 2) < goodRectReal[j].x && goodRectReal[j].x < (goodRect[j].x + 2) && (goodRect[i].y - 2) < goodRectReal[j].y && goodRectReal[j].y < (goodRect[i].y + 2))) {
+                if(!((goodRect[i].x - 3) < goodRectReal[j].x && goodRectReal[j].x < (goodRect[j].x + 3) && (goodRect[i].y - 3) < goodRectReal[j].y && goodRectReal[j].y < (goodRect[i].y + 3))) {
         	    goodRectReal.push_back(goodRect[i]);
     	        }
             }
@@ -282,18 +304,6 @@ int main(int argc, char* argv[])
 #ifdef USE_NETWORK
         c.send_actual_data('d', distance);
         c.send_actual_data('a', angleToTurn);
-	c.send_actual_data('g', goodRectReal.size());
-	if(goodRectReal.size() == 2) {
-	    c.send_actual_data('b', goodRectReal[rectToUse1].height);
-	    c.send_actual_data('c', goodRectReal[rectToUse1].width);
-	    c.send_actual_data('e', goodRectReal[rectToUse1].x);
-	    c.send_actual_data('f', goodRectReal[rectToUse1].y);
-	    c.send_actual_data('h', goodRectReal[rectToUse2].height);
-	    c.send_actual_data('i', goodRectReal[rectToUse2].width);
-	    c.send_actual_data('j', goodRectReal[rectToUse2].x);
-	    c.send_actual_data('k', goodRectReal[rectToUse2].y);
-	    c.send_actual_data('l', goodRectReal[rectToUse].x + goodRectReal[rectToUse].width);
-	}
 	c.send_actual_data('t', 1000*(clock() - t)/CLOCKS_PER_SEC);
 #endif 
 
