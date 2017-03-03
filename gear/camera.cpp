@@ -211,6 +211,8 @@ int main(int argc, char* argv[])
     unsigned int corRectX = 0;
     unsigned int corRectWidth = 0;
     unsigned int corRectHeight = 0;
+    bool turnPositive = 0;
+
 
     if(goodRectReal.size() == 3) {
 
@@ -244,10 +246,10 @@ int main(int argc, char* argv[])
 	    }
 	}
 
-	int newRectY = 0;
-	int newRectX = 0;
-	int newRectHeight = 0;
-	int newRectWidth = 0;
+	unsigned int newRectY = 0;
+	unsigned int newRectX = 0;
+	unsigned int newRectHeight = 0;
+	unsigned int newRectWidth = 0;
 
 	if(goodRectReal[topRectIndex].x < goodRectReal[bottomRectIndex].y) {
 	    newRectX = (unsigned int)(goodRectReal[topRectIndex].x);
@@ -271,6 +273,20 @@ int main(int argc, char* argv[])
 	    corRectWidth = newRectX + newRectWidth - goodRectReal[maxHeightIndex].x;
 	}
 
+	if (newRectHeight * newRectWidth > (unsigned int)(goodRectReal[maxHeightIndex].height * goodRectReal[maxHeightIndex].width)) {
+	    if (newRectX > (unsigned int)(goodRectReal[maxHeightIndex].x)) {
+		turnPositive = 1;
+	    } else {
+		turnPositive = 0;
+	    }
+	} else {
+	    if (newRectX > (unsigned int)(goodRectReal[maxHeightIndex].x)) {
+		turnPositive = 0;
+	    } else {
+		turnPositive = 1;
+	    }
+	}
+
 	unsigned int tempTop = 0;
 	unsigned int tempBottom = 0;
 	if(newRectHeight + newRectY > (unsigned int)(goodRectReal[maxHeightIndex].height + goodRectReal[maxHeightIndex].y)) {
@@ -284,6 +300,7 @@ int main(int argc, char* argv[])
 	} else {
 	    tempTop = (unsigned int)(goodRectReal[maxHeightIndex].y);
 	}
+	corRectHeight = tempBottom - tempTop;
 
     }
 
@@ -316,17 +333,45 @@ int main(int argc, char* argv[])
 	    tempTop = (unsigned int)(goodRectReal[1].y);
 	}
 	corRectHeight = tempBottom - tempTop;
+
+	if (goodRectReal[0].height * goodRectReal[0].width > goodRectReal[1].height * goodRectReal[1].width) {
+            if ((unsigned int)goodRectReal[0].x > (unsigned int)goodRectReal[1].x) {
+                turnPositive = 1;
+            } else {
+                turnPositive = 0;
+            }
+        } else {
+            if (goodRectReal[0].x > goodRectReal[1].x) {
+                turnPositive = 0;
+            } else {
+                turnPositive = 1;
+            }
+        }
+    }
+
+/*
     } else if(goodRectReal.size() == 1) {
 	corRectHeight = goodRectReal[0].height;
 	corRectX = goodRectReal[0].x;
     }
+*/
 
     int distance = corRectHeight;
     int angleToTurn = corRectX + (corRectWidth / 2) - WIDTH/2;
+    double targetAngle;
+    if (corRectHeight != 0) {
+	targetAngle = (double)(corRectWidth) / (double)(corRectHeight);
+    } else {
+	targetAngle = 0;
+    }
+    if (!turnPositive) {
+	targetAngle = -targetAngle;
+    }
 
     cout << "Distance: \t" << distance << endl;
     cout << "Angle: \t\t" << angleToTurn << endl;
     cout << "goodRect Size: \t" << goodRectReal.size() << endl;
+    cout << "Target Angle: \t" << targetAngle << endl;
 
     if(goodRectReal.size() > 0) {
         ////TODO: These are placeholder variables for testing.
