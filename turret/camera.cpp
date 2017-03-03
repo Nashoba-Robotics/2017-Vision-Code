@@ -10,7 +10,7 @@
 #define USE_NETWORK
 #ifdef USE_NETWORK
 #include "tcp_client.h"
-#define PORT 5800
+#define PORT 5802
 #define ROBOT_IP "roboRIO-1768-FRC.local"
 //#define ROBOT_IP "10.17.68.22"
 #endif
@@ -264,7 +264,7 @@ int main(int argc, char* argv[])
         //int angleToTurn = (goodRect[i].y + goodRect[i].height/2) - HEIGHT/2;
 
        	   unsigned int distance = goodRectReal[rectToUse].x;
-           unsigned int angleToTurn = goodRectReal[rectToUse].y + (goodRectReal[rectToUse].height / 2) - (HEIGHT / 2);
+           unsigned int angleToTurn = (HEIGHT / 2) - (goodRectReal[rectToUse].y + (goodRectReal[rectToUse].height / 2));
 
    //     cout << "Distance: \t" << distance << endl;
    //     cout << "Angle: \t\t" << angleToTurn << endl;
