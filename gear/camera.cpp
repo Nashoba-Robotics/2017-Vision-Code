@@ -46,7 +46,7 @@
 #else
 #define RED_LOW 0
 #define RED_HIGH 20
-#define GREEN_LOW 200
+#define GREEN_LOW 150
 #define GREEN_HIGH 255
 #define BLUE_LOW 0
 #define BLUE_HIGH 20
@@ -191,19 +191,37 @@ int main(int argc, char* argv[])
      rectangle(drawing, goodRect[i].tl(), goodRect[i].br(), color, 2,8,0);
       drawContours(drawing, goodContours, i, color, 2,8,hierarchy, 0, Point() );
     }
-    imshow("Contours", drawing);
+    imshow("contours.jpg", drawing);
 #endif
 
     vector<Rect> goodRectReal(0);
 
-    for(unsigned int i = 0; i < goodRect.size(); i++) {
-	for(unsigned int j = i + 1; j < goodRect.size(); j++) {
-	    if((goodRect[i].x - 2) < goodRect[j].x && goodRect[j].x < (goodRect[i].x + 2) && (goodRect[i].y - 2) < goodRect[j].y && goodRect[j].y < (goodRect[i].y + 2)) {
-		goodRectReal.push_back(goodRect[i]);
-	    }
-	}
-    }
+    cout << "Good rect size here " << goodRect.size() << endl;
 
+    for(unsigned int i = 0; i < goodRect.size(); i++) {
+        //cout << "Good rect " << i << " x: " << goodRect[i].x << " y: " << goodRect[i].y << endl;
+        /*for(unsigned int j = i + 1; j < goodRect.size(); j++) {
+            if((goodRect[i].x - 2) < goodRect[j].x && goodRect[j].x < (goodRect[j].x + 2) && (goodRect[i].y - 2) < goodRect[j].y && goodRect[j].y < (goodRect[i].y + 2)) {
+                goodRectReal.push_back(goodRect[i]);
+                break;
+            }
+        }*/
+        //There isn't a duplicate of this remaining.in the rest of the array
+            bool thisIsADuplicate = false;
+            for(unsigned int k = 0; k < goodRectReal.size(); k++) {
+                //cout << "x condition: " << ((goodRect[i].x - 4) < goodRectReal[k].x && goodRectReal[k].x < (goodRectReal[k].x + 4)) << endl;
+                //cout << "y condition: " << ((goodRect[i].y - 4) < goodRectReal[k].y && goodRectReal[k].y < (goodRectReal[k].y + 4)) << endl;
+                if((goodRect[i].x - 4) < goodRectReal[k].x && goodRectReal[k].x < (goodRect[i].x + 4) && (goodRect[i].y - 4) < goodRectReal[k].y && goodRectReal[k].y < (goodRect[i].y + 4)) {
+                    thisIsADuplicate = true;
+                    //cout << "dup of rect " << k << " x: " << goodRectReal[k].x << " y: " << goodRectReal[k].y << endl;
+                    break;
+                }
+            }
+            if(!thisIsADuplicate) {
+                //cout << "This is not a duplicate" << endl;
+                goodRectReal.push_back(goodRect[i]);
+        }
+    }
 
     //TODO: Determine which contour to use.
     //We'll assume there's only one contour for now, but this needs to be fixed.
@@ -392,7 +410,7 @@ int main(int argc, char* argv[])
 #endif
 
     } else {
-        c.send_actual_data('x', 0);
+	c.send_actual_data('x', 0);
     }
     cout << CLOCKS_PER_SEC/(clock() - t) << "fps" << endl;
     //waitKey(1);
