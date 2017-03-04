@@ -310,6 +310,8 @@ int main(int argc, char* argv[])
 
 
       //}
+    } else {
+	c.send_actual_data('x', 0);
     }
     cout << ((float) clock() - t)/CLOCKS_PER_SEC << "s" << endl;
     cout << CLOCKS_PER_SEC/((float) clock() - t) << "fps" << endl;
