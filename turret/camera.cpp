@@ -1,3 +1,4 @@
+
 #include <cv.hpp>
 #include <highgui.h>
 #include <iostream>
@@ -7,7 +8,7 @@
 #include <math.h>
 #include <errno.h>
 
-#define USE_NETWORK
+//#define USE_NETWORK
 #ifdef USE_NETWORK
 #include "tcp_client.h"
 #define PORT 5802
@@ -22,7 +23,7 @@
 //#define r1920x1080
 
 #define Blur
-//#define Dilate
+#define Dilate
 
 #ifdef r1280x1720
 #define WIDTH 1280
@@ -45,11 +46,11 @@
 #define SAT_HIGH 255
 #else
 #define RED_LOW 0
-#define RED_HIGH 100
-#define GREEN_LOW 100
+#define RED_HIGH 125
+#define GREEN_LOW 65
 #define GREEN_HIGH 255
 #define BLUE_LOW 0
-#define BLUE_HIGH 100
+#define BLUE_HIGH 125
 #endif
 
 
@@ -167,8 +168,8 @@ int main(int argc, char* argv[])
     Mat img = getBWImage();
     cout << ((float) clock() - t)/CLOCKS_PER_SEC << "s" << endl;
     //Contours processing
-    //Canny(img, canny_output, thresh, thresh*2, 3 );
-    findContours( img /*canny_output*/, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0,0) );
+    Canny(img, canny_output, thresh, thresh*2, 3 );
+    findContours(canny_output, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0,0) );
     //Limit contours (area, perimeter, etc.)
     cout << ((float) clock() - t)/CLOCKS_PER_SEC << "s" << endl;
     vector<vector<Point> > goodContours(0);
@@ -196,10 +197,9 @@ int main(int argc, char* argv[])
 #endif
     //Determine which contour to use.
     //We'll assume there's only one contour for now, but this needs to be fixed.
-
+    //cout << "Good Rect Size: " << goodRect.size() << endl;
     vector<Rect> goodRectReal(0);
 
-    /*
     for(unsigned int i = 0; i < goodRect.size(); i++) {
         for(unsigned int j = i + 1; j < goodRect.size(); j++) {
             if((goodRect[i].x - 2) < goodRect[j].x && goodRect[j].x < (goodRect[j].x + 2) && (goodRect[i].y - 2) < goodRect[j].y && goodRect[j].y < (goodRect[i].y + 2)) {
@@ -207,16 +207,20 @@ int main(int argc, char* argv[])
             }
         }
     }
-    */
-    
 
-    for (unsigned int i = 0; i < goodRect.size(); i++) {
-        goodRectReal.push_back(goodRect[i]);
-    }
+    /*if(goodRect.size() == 3) {
+        for (unsigned int i = 0; i < goodRect.size(); i++) {
+       	    for(unsigned int j = 0; j < goodRectReal.size(); j++) {
+                if(!((goodRect[i].x - 2) < goodRectReal[j].x && goodRectReal[j].x < (goodRect[j].x + 2) && (goodRect[i].y - 2) < goodRectReal[j].y && goodRectReal[j].y < (goodRect[i].y + 2))) {
+        	    goodRectReal.push_back(goodRect[i]);
+    	        }
+            }
+        }
+    }*/ //this is useless
 
     unsigned int rectToUse1 = 100;
     unsigned int rectToUse2 = 100;
-    unsigned int area1= 0;
+    unsigned int area1 = 0;
     unsigned int area2 = 0;
 
     for(unsigned int i = 0; i < goodRectReal.size(); i++) {
@@ -232,7 +236,9 @@ int main(int argc, char* argv[])
         }
     }
 
-    unsigned int rectToUse = 100;
+    //cout << "rectToUse1: " << rectToUse1 << " rectToUse2: " << rectToUse2 << endl;
+
+    unsigned int rectToUse = 0;
     if(rectToUse1 != 100 && rectToUse2 != 100) {
         if ((unsigned int)(goodRectReal[rectToUse1].x) < (unsigned int)(goodRectReal[rectToUse2].x)) {
 	    rectToUse = rectToUse1;
@@ -241,15 +247,16 @@ int main(int argc, char* argv[])
         }
     }
 
-    cout << "goodRect Size:" << goodRectReal.size() << endl;
-    if (goodRect.size() > 0) {
+    cout << "goodRect Size: " << goodRectReal.size() << "\t rectToUse: " << rectToUse << endl;
+    if (goodRectReal.size() > 0) {
     	cout << "Height: \t" << goodRectReal[rectToUse].width << endl;
-    	cout << "X: \t\t" << goodRectReal[rectToUse].x << endl;
+    	cout << "X: \t" << goodRectReal[rectToUse].x << endl;
     	cout << "Y: \t\t" << goodRectReal[rectToUse].y << endl;
     }
+    //cout << "line 252" << endl;
 
-    for(unsigned int i = 0; i < goodRectReal.size(); i++)
-    {
+    //for(unsigned int i = 0; i < goodRectReal.size(); i++)
+    //{
     	if(goodRectReal.size() > 1) {
            // cout << "New image: " << i << endl;
     	   // cout << "height: " << goodRect[i].width << endl;
@@ -263,11 +270,15 @@ int main(int argc, char* argv[])
         //int distance = goodRect[i].width;
         //int angleToTurn = (goodRect[i].y + goodRect[i].height/2) - HEIGHT/2;
 
-       	   unsigned int distance = goodRectReal[rectToUse].x;
-           unsigned int angleToTurn = (HEIGHT / 2) - (goodRectReal[rectToUse].y + (goodRectReal[rectToUse].height / 2));
+       	   unsigned int distance = goodRectReal[rectToUse /*i*/].x;
+           int angleToTurn = (HEIGHT / 2) - (goodRectReal[rectToUse].y + (goodRectReal[rectToUse].height / 2));
 
-   //     cout << "Distance: \t" << distance << endl;
-   //     cout << "Angle: \t\t" << angleToTurn << endl;
+	cout << "Distance px: " << distance << endl;
+        //cout << "Distance Real: \t" << 40.8 + 248.4 * pow(2.7182818,(double)(distance)*-.00404) << endl;
+	cout << "Distance Real: \t" <<-80.79309 * (log((double) distance) / log(2.7182818)) + 567.68835 << endl;
+        cout << "Angle: \t\t" << (asin(angleToTurn/235.95426680) / 4.298829) * (180 / M_PI) << endl;
+	//cout << "goodRectSize: \t" << goodRect.size() << endl;
+	//cout << "goodRectRealSize: \t" << goodRectReal.size() << endl;
 #ifdef USE_NETWORK
         c.send_actual_data('d', distance);
         c.send_actual_data('a', angleToTurn);
@@ -288,7 +299,7 @@ int main(int argc, char* argv[])
 
 
 
-      }
+      //}
     }
     cout << ((float) clock() - t)/CLOCKS_PER_SEC << "s" << endl;
     cout << CLOCKS_PER_SEC/((float) clock() - t) << "fps" << endl;
