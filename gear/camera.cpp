@@ -391,6 +391,8 @@ int main(int argc, char* argv[])
         c.send_actual_data('t', 1000*(clock() - t)/CLOCKS_PER_SEC);
 #endif
 
+    } else {
+        c.send_actual_data('x', 0);
     }
     cout << CLOCKS_PER_SEC/(clock() - t) << "fps" << endl;
     //waitKey(1);
