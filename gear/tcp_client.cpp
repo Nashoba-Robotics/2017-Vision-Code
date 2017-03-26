@@ -9,6 +9,7 @@
 #include<arpa/inet.h>	//inet_addr
 #include<netdb.h>	//hostent
 #include<malloc.h>
+#include<stdlib.h>
 #include "tcp_client.h"
 
 //#define MAIN
@@ -135,7 +136,9 @@ void tcp_client::send_actual_data(char identifier, int value)
         data[3] = (value & 0x0000FF00) >> 8;
         data[4] = value & 0x000000FF; 
         
-        send_data(data, 5);
+        if(!send_data(data, 5)) {
+		exit(-1);
+	}
         free(data);
 
 }
