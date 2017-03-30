@@ -43,7 +43,7 @@ bool tcp_client::conn(string address , int port)
 	else	{	/* OK , nothing */	}
 	
 	//setup address structure
-	if(inet_addr(address.c_str()) == -1)
+	if(inet_addr(address.c_str()) == INADDR_NONE)
 	{
 		struct hostent *he;
 		struct in_addr **addr_list;
@@ -126,21 +126,21 @@ string tcp_client::receive(int size=512)
 	return reply;
 }
 
-void tcp_client::send_actual_data(char identifier, int value)
+bool tcp_client::send_actual_data(char identifier, int value)
 {
-         char* data = (char*) calloc(5, sizeof(char));
-        data[0] = identifier;
-       
-        data[1] = (value & 0xFF000000) >> 24;
-        data[2] = (value & 0x00FF0000) >> 16;
-        data[3] = (value & 0x0000FF00) >> 8;
-        data[4] = value & 0x000000FF; 
-        
-        if(!send_data(data, 5)) {
-		exit(-1);
-	}
-        free(data);
+    char* data = (char*) calloc(5, sizeof(char));
+    data[0] = identifier;
 
+    data[1] = (value & 0xFF000000) >> 24;
+    data[2] = (value & 0x00FF0000) >> 16;
+    data[3] = (value & 0x0000FF00) >> 8;
+    data[4] = value & 0x000000FF; 
+
+    if(!send_data(data, 5)) {
+        return false;
+    }
+    free(data);
+    return true;
 }
 
 #ifdef MAIN

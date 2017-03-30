@@ -8,8 +8,8 @@
 #include<sys/socket.h>	//socket
 #include<arpa/inet.h>	//inet_addr
 #include<netdb.h>	//hostent
-#include<stdlib.h>
 #include<malloc.h>
+#include<stdlib.h>
 #include "tcp_client.h"
 
 //#define MAIN
@@ -126,21 +126,21 @@ string tcp_client::receive(int size=512)
 	return reply;
 }
 
-void tcp_client::send_actual_data(char identifier, int value)
+bool tcp_client::send_actual_data(char identifier, int value)
 {
-         char* data = (char*) calloc(5, sizeof(char));
-        data[0] = identifier;
-       
-        data[1] = (value & 0xFF000000) >> 24;
-        data[2] = (value & 0x00FF0000) >> 16;
-        data[3] = (value & 0x0000FF00) >> 8;
-        data[4] = value & 0x000000FF; 
-        
-        if(!send_data(data, 5)) {
-		exit(-1);
-	}
-        free(data);
+    char* data = (char*) calloc(5, sizeof(char));
+    data[0] = identifier;
 
+    data[1] = (value & 0xFF000000) >> 24;
+    data[2] = (value & 0x00FF0000) >> 16;
+    data[3] = (value & 0x0000FF00) >> 8;
+    data[4] = value & 0x000000FF; 
+
+    if(!send_data(data, 5)) {
+        return false;
+    }
+    free(data);
+    return true;
 }
 
 #ifdef MAIN
