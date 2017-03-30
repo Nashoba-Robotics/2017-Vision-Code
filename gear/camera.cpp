@@ -6,6 +6,7 @@
 #include "opencv2/highgui/highgui_c.h"
 #include <math.h>
 #include <errno.h>
+#include <signal.h>
 
 #define USE_NETWORK
 #ifdef USE_NETWORK
@@ -129,6 +130,12 @@ Mat getBWImage() {
  return dilatedImg;
 }
 
+static void shutdown(int sig) {
+    (void) sig;
+    capture.release();
+    exit(-1);
+}
+
 int main(int argc, char* argv[])
 {
   if(argc != 2) {
@@ -138,6 +145,9 @@ int main(int argc, char* argv[])
 
   cout << "Using OpenCV Version " << CV_MAJOR_VERSION << "." << CV_MINOR_VERSION << endl;
 
+  signal(SIGINT, shutdown);
+
+restart:
   cout << "Opening USB Camera" << endl;
   capture = VideoCapture(atoi(argv[1]));
   if(!capture.isOpened()) {
@@ -159,7 +169,6 @@ int main(int argc, char* argv[])
   Mat canny_output;
   vector<vector<Point> > contours;
   vector<Vec4i> hierarchy;
-  const Scalar color = Scalar(255,255,255);
 
   while(1)
   {
@@ -397,6 +406,7 @@ int main(int argc, char* argv[])
     cout << "goodRect Size: \t" << goodRectReal.size() << endl;
     cout << "Target Angle: \t" << targetAngle << endl;
 
+    bool rc = true;
     if(goodRectReal.size() > 1) {
         ////TODO: These are placeholder variables for testing.
         ////      We need to find the actual distance and angle here.
@@ -404,13 +414,17 @@ int main(int argc, char* argv[])
         //int distance = corRectHeight;
        // int angleToTurn = corRectX;
 #ifdef USE_NETWORK
-        c.send_actual_data('d', distance);
-        c.send_actual_data('a', angleToTurn);
-        c.send_actual_data('t', 1000*(clock() - t)/CLOCKS_PER_SEC);
-#endif
-
+        rc &= c.send_actual_data('d', distance);
+        rc &= c.send_actual_data('a', angleToTurn);
+        rc &= c.send_actual_data('t', 1000*(clock() - t)/CLOCKS_PER_SEC);
     } else {
-	c.send_actual_data('x', 0);
+	rc &= c.send_actual_data('x', 0);
+#endif
+    }
+    if(rc == false) {
+        cout << "Failed to write to socket, exiting" << endl;
+        capture.release();
+        goto restart;
     }
     cout << CLOCKS_PER_SEC/(clock() - t) << "fps" << endl;
     //waitKey(1);

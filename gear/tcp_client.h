@@ -23,7 +23,7 @@ public:
 	bool conn(std::string host, int port);
 	bool send_data(char* data, int length);
         std::string receive(int);
-        void send_actual_data(char identifier, int value);
+        bool send_actual_data(char identifier, int value);
 };
 
 

@@ -7,6 +7,7 @@
 #include "opencv2/highgui/highgui_c.h"
 #include <math.h>
 #include <errno.h>
+#include <signal.h>
 
 #define USE_NETWORK
 #ifdef USE_NETWORK
@@ -53,8 +54,6 @@
 #define BLUE_HIGH 150
 #endif
 
-
-
 using namespace cv;
 using namespace std;
 
@@ -63,6 +62,12 @@ raspicam::RaspiCam_Cv capture;
 #else
 VideoCapture capture;
 #endif
+
+static void shutdown(int sig) {
+    (void) sig;
+    capture.release();
+    exit(-1);
+}
 
 Mat getBWImage() {
   //Dilation
@@ -143,6 +148,9 @@ int main(int argc, char* argv[])
 
   cout << "Using OpenCV Version " << CV_MAJOR_VERSION << "." << CV_MINOR_VERSION << endl;
 
+  signal(SIGINT, shutdown);
+
+restart:
   cout << "Opening USB Camera" << endl;
   capture = VideoCapture(atoi(argv[1]));  
   if(!capture.isOpened()) {
@@ -281,40 +289,43 @@ int main(int argc, char* argv[])
 
     //for(unsigned int i = 0; i < goodRectReal.size(); i++)
     //{
-    	if(goodRectReal.size() > 1) {
-           // cout << "New image: " << i << endl;
-    	   // cout << "height: " << goodRect[i].width << endl;
-    	   // cout << "width: \t" << goodRect[i].height << endl;
-	   // cout << "X: \t" << goodRect[i].y << endl;
-	   // cout << "Y: \t" << goodRect[i].x << endl;
+     bool rc = true;
+     if(goodRectReal.size() > 1) {
+         // cout << "New image: " << i << endl;
+         // cout << "height: " << goodRect[i].width << endl;
+         // cout << "width: \t" << goodRect[i].height << endl;
+         // cout << "X: \t" << goodRect[i].y << endl;
+         // cout << "Y: \t" << goodRect[i].x << endl;
 
-        //TODO: These are placeholder variables for testing.
-        //      We need to find the actual distance and angle here.
-        //      These are in units of 16ths of an inch and hundreths of degrees 
-        //int distance = goodRect[i].width;
-        //int angleToTurn = (goodRect[i].y + goodRect[i].height/2) - HEIGHT/2;
+         //TODO: These are placeholder variables for testing.
+         //      We need to find the actual distance and angle here.
+         //      These are in units of 16ths of an inch and hundreths of degrees 
+         //int distance = goodRect[i].width;
+         //int angleToTurn = (goodRect[i].y + goodRect[i].height/2) - HEIGHT/2;
 
-       	   unsigned int distance = goodRectReal[rectToUse /*i*/].x;
-           int angleToTurn = (HEIGHT / 2) - (goodRectReal[rectToUse].y + (goodRectReal[rectToUse].height / 2));
+         unsigned int distance = goodRectReal[rectToUse /*i*/].x;
+         int angleToTurn = (HEIGHT / 2) - (goodRectReal[rectToUse].y + (goodRectReal[rectToUse].height / 2));
 
-	cout << "Distance px: " << distance << endl;
-        //cout << "Distance Real: \t" << 40.8 + 248.4 * pow(2.7182818,(double)(distance)*-.00404) << endl;
-	cout << "Distance Real: \t" <<-80.79309 * (log((double) distance) / log(2.7182818)) + 567.68835 << endl;
-        cout << "Angle: \t\t" << (asin(angleToTurn/235.95426680) / 4.298829) * (180 / M_PI) << endl;
-	//cout << "goodRectSize: \t" << goodRect.size() << endl;
-	//cout << "goodRectRealSize: \t" << goodRectReal.size() << endl;
+         cout << "Distance px: " << distance << endl;
+         //cout << "Distance Real: \t" << 40.8 + 248.4 * pow(2.7182818,(double)(distance)*-.00404) << endl;
+         cout << "Distance Real: \t" <<-80.79309 * (log((double) distance) / log(2.7182818)) + 567.68835 << endl;
+         cout << "Angle: \t\t" << (asin(angleToTurn/235.95426680) / 4.298829) * (180 / M_PI) << endl;
+         //cout << "goodRectSize: \t" << goodRect.size() << endl;
+         //cout << "goodRectRealSize: \t" << goodRectReal.size() << endl;
 #ifdef USE_NETWORK
-        c.send_actual_data('d', distance);
-        c.send_actual_data('a', angleToTurn);
-	c.send_actual_data('t', 1000*(clock() - t)/CLOCKS_PER_SEC);
-#endif 
-
-
-
-      //}
+        rc &= c.send_actual_data('d', distance);
+        rc &= c.send_actual_data('a', angleToTurn);
+	rc &= c.send_actual_data('t', 1000*(clock() - t)/CLOCKS_PER_SEC);
     } else {
-	c.send_actual_data('x', 0);
+	rc &= c.send_actual_data('x', 0);
+#endif 
     }
+    if(rc == false) {
+        cout << "Failed to write to socket, exiting" << endl;
+        capture.release();
+        goto restart;
+    }
+
     cout << ((float) clock() - t)/CLOCKS_PER_SEC << "s" << endl;
     cout << CLOCKS_PER_SEC/((float) clock() - t) << "fps" << endl;
     //waitKey(1);
