@@ -1,10 +1,21 @@
-camera: camera.cpp
-	rm -rf build
-	mkdir build
-	g++ -ggdb `pkg-config opencv --cflags --libs` -o build/camera camera.cpp tcp_client.cpp `pkg-config --libs opencv` -Wall
+BUILD := build
 
-run: 
-	./build/camera
+CAMERA ?= 0 
+
+CXXFLAGS := $(shell pkg-config opencv --cflags --libs)
+CXXFLAGS += -O3
+ERR_FLAGS := -Wall -Werror -Wextra
+
+.PHONY: camera run clean
+
+camera: $(BUILD)/camera
+
+$(BUILD)/camera: camera.cpp tcp_client.cpp
+	-@mkdir build
+	g++ $(CXXFLAGS) -o $(BUILD)/camera $^ $(ERR_FLAGS)
+
+run: $(BUILD)/camera
+	./$< $(CAMERA)
 
 clean:
-	rm -rf build
+	rm -rf $(BUILD)
